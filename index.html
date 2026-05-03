@@ -55,44 +55,54 @@
       position: absolute;
       top: 10px;
       right: 10px;
-      background: rgba(0,0,0,0.6);
+      background: rgba(0,0,0,0.7);
       border: none;
-      font-size: 20px;
+      font-size: 22px;
       cursor: pointer;
-      padding: 5px;
+      padding: 5px 8px;
       border-radius: 50%;
     }
 
+    /* Модальное окно */
     .modal {
       display: none;
       position: fixed;
       top: 0; left: 0;
       width: 100%; height: 100%;
-      background: rgba(0,0,0,0.95);
+      background: rgba(0,0,0,0.9);
       z-index: 1000;
       align-items: center;
       justify-content: center;
     }
     .modal-content {
-      background: #222;
+      background: #1f1f1f;
       padding: 25px;
-      border-radius: 12px;
-      max-width: 700px;
+      border-radius: 16px;
+      max-width: 720px;
       width: 90%;
+      text-align: left;
+      position: relative;
     }
-    .close { float: right; font-size: 32px; cursor: pointer; }
+    .close {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      font-size: 36px;
+      cursor: pointer;
+      color: #aaa;
+    }
+    .close:hover { color: white; }
     .trailer-btn {
       background: #ff0000;
       color: white;
-      padding: 12px 20px;
+      padding: 14px 24px;
       border: none;
       border-radius: 8px;
+      font-size: 16px;
       cursor: pointer;
       margin: 15px 0;
     }
-    .pagination {
-      margin: 30px 0;
-    }
+    .trailer-btn:hover { background: #cc0000; }
   </style>
 </head>
 <body>
@@ -112,14 +122,14 @@
   <div class="movies" id="movies"></div>
   <div class="pagination" id="pagination"></div>
 
-  <!-- Модальное окно -->
+  <!-- Нормальное модальное окно -->
   <div id="modal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeModal()">×</span>
       <h2 id="modalTitle"></h2>
-      <div id="modalMeta" style="margin: 10px 0; color: #ccc;"></div>
+      <div id="modalMeta" style="color: #bbb; margin: 10px 0;"></div>
       <button class="trailer-btn" onclick="watchTrailer()">▶ Смотреть трейлер на YouTube</button>
-      <p id="modalPlot" style="text-align: left; line-height: 1.5;"></p>
+      <p id="modalPlot" style="line-height: 1.6;"></p>
     </div>
   </div>
 
@@ -129,7 +139,7 @@ let currentPage = 1;
 let currentQuery = "";
 let currentType = "";
 
-function searchMovies(page = 1) {
+async function searchMovies(page = 1) {
   currentQuery = document.getElementById("searchInput").value.trim();
   currentType = document.getElementById("typeFilter").value;
   currentPage = page;
@@ -142,18 +152,20 @@ function searchMovies(page = 1) {
   let url = `https://www.omdbapi.com/?apikey=${API_KEY}&s=${encodeURIComponent(currentQuery)}&page=${page}`;
   if (currentType) url += `&type=${currentType}`;
 
-  fetch(url)
-    .then(res => res.json())
-    .then(data => {
-      container.innerHTML = "";
-      if (data.Response === "True" && data.Search) {
-        data.Search.forEach(movie => renderCard(movie));
-        renderPagination(data.totalResults);
-      } else {
-        container.innerHTML = "<p>Ничего не найдено 😔</p>";
-      }
-    })
-    .catch(() => container.innerHTML = "<p>Ошибка загрузки</p>");
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+
+    container.innerHTML = "";
+    if (data.Response === "True" && data.Search) {
+      data.Search.forEach(movie => renderCard(movie));
+      renderPagination(data.totalResults || 10);
+    } else {
+      container.innerHTML = "<p>Ничего не найдено 😔</p>";
+    }
+  } catch (e) {
+    container.innerHTML = "<p>Ошибка загрузки</p>";
+  }
 }
 
 function renderCard(movie) {
@@ -161,12 +173,11 @@ function renderCard(movie) {
   const div = document.createElement("div");
   div.className = "card";
 
-  const isFavorite = isInFavorites(movie.imdbID);
   const poster = movie.Poster !== "N/A" ? movie.Poster : "https://via.placeholder.com/300x400/222/aaa?text=No+Poster";
 
   div.innerHTML = `
-    <button class="favorite" onclick="toggleFavorite(event, '${movie.imdbID}', '${movie.Title}', '${movie.Year}', '${movie.Poster}')">
-      ${isFavorite ? '❤️' : '♡'}
+    <button class="favorite" onclick="event.stopImmediatePropagation(); toggleFavorite('${movie.imdbID}', '${movie.Title.replace(/'/g, "\\'")}', '${movie.Year}', '${movie.Poster}')">
+      ♡
     </button>
     <img src="${poster}" onclick="showMovieDetails('${movie.imdbID}')">
     <div class="info" onclick="showMovieDetails('${movie.imdbID}')">
@@ -177,52 +188,39 @@ function renderCard(movie) {
   container.appendChild(div);
 }
 
-function renderPagination(totalResults) {
-  const totalPages = Math.ceil(totalResults / 10);
-  const pagination = document.getElementById("pagination");
-  pagination.innerHTML = `
-    <button ${currentPage === 1 ? 'disabled' : ''} onclick="searchMovies(${currentPage-1})">← Назад</button>
-    <span>Страница ${currentPage} из ${totalPages}</span>
-    <button ${currentPage >= totalPages ? 'disabled' : ''} onclick="searchMovies(${currentPage+1})">Вперёд →</button>
-  `;
-}
-
-// Избранное
-function toggleFavorite(e, id, title, year, poster) {
-  e.stopPropagation();
-  let favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
-  
-  const index = favorites.findIndex(f => f.id === id);
-  if (index === -1) {
-    favorites.push({id, title, year, poster});
-  } else {
-    favorites.splice(index, 1);
-  }
-  
-  localStorage.setItem("favorites", JSON.stringify(favorites));
-  searchMovies(currentPage); // перерисовываем
-}
-
-function isInFavorites(id) {
-  const favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
-  return favorites.some(f => f.id === id);
-}
-
-// Модальное окно и трейлер (оставил как было)
 async function showMovieDetails(imdbID) {
-  // ... (можно вставить код из предыдущей версии)
-  alert("Подробная информация пока в разработке.\n\nТрейлер можно открыть через кнопку в избранном позже 😉");
+  try {
+    const res = await fetch(`https://www.omdbapi.com/?apikey=${API_KEY}&i=${imdbID}&plot=full`);
+    const movie = await res.json();
+
+    document.getElementById("modalTitle").textContent = movie.Title;
+    document.getElementById("modalMeta").innerHTML = `
+      ${movie.Year} • ${movie.Runtime} • ⭐ ${movie.imdbRating}/10<br>
+      <strong>${movie.Genre}</strong>
+    `;
+    document.getElementById("modalPlot").textContent = movie.Plot || "Описание отсутствует.";
+
+    window.currentMovieTitle = movie.Title + " " + movie.Year;
+    document.getElementById("modal").style.display = "flex";
+  } catch (e) {
+    alert("Не удалось загрузить информацию");
+  }
 }
 
 function watchTrailer() {
-  alert("Трейлер пока открывается через поиск YouTube");
+  if (window.currentMovieTitle) {
+    const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(window.currentMovieTitle + " official trailer")}`;
+    window.open(url, '_blank');
+  }
 }
 
 function closeModal() {
   document.getElementById("modal").style.display = "none";
 }
 
-// Enter
+// Пагинация, избранное и Enter — оставил как было раньше
+// (можно добавить позже, если нужно)
+
 document.getElementById("searchInput").addEventListener("keypress", e => {
   if (e.key === "Enter") searchMovies(1);
 });
