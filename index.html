@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Movie Search</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #111;
+      color: white;
+      text-align: center;
+      margin: 0;
+    }
+
+    input {
+      padding: 10px;
+      margin: 20px;
+      width: 200px;
+    }
+
+    button {
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    .movies {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .card {
+      background: #222;
+      margin: 10px;
+      padding: 10px;
+      border-radius: 10px;
+      width: 150px;
+    }
+
+    img {
+      width: 100%;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>Поиск фильмов</h2>
+
+<input id="searchInput" placeholder="Название фильма">
+<button onclick="searchMovies()">Поиск</button>
+
+<div class="movies" id="movies"></div>
+
+<script>
+async function searchMovies() {
+  let query = document.getElementById("searchInput").value;
+
+  if (!query) return;
+
+  let url = `https://www.omdbapi.com/?apikey=c48d419a&s=${query}`;
+
+  let response = await fetch(url);
+  let data = await response.json();
+
+  let container = document.getElementById("movies");
+  container.innerHTML = "";
+
+  if (data.Search) {
+    data.Search.forEach(movie => {
+      let div = document.createElement("div");
+      div.className = "card";
+
+      div.innerHTML = `
+        <img src="${movie.Poster}" />
+        <p>${movie.Title}</p>
+      `;
+
+      container.appendChild(div);
+    });
+  } else {
+    container.innerText = "Ничего не найдено";
+  }
+}
+</script>
+
+</body>
+</html>
