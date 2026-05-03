@@ -5,40 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Поиск фильмов</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: #fff;
-      margin: 0;
-      padding: 20px;
-      text-align: center;
-    }
-    h1 { margin: 20px 0; }
-    .controls {
-      margin: 20px 0;
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    input { padding: 12px; width: 280px; font-size: 16px; border-radius: 8px; border: none; }
-    button { 
-      padding: 12px 20px; 
-      background: #e50914; 
-      color: white; 
-      border: none; 
-      border-radius: 8px; 
-      cursor: pointer; 
-    }
-    select { padding: 12px; border-radius: 8px; background: #222; color: white; }
+    body {font-family: Arial, sans-serif; background: #111; color: #fff; margin: 0; padding: 20px; text-align: center;}
+    h1 {margin: 20px 0;}
+    .controls {margin: 20px 0; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;}
+    input {padding: 12px; width: 280px; font-size: 16px; border-radius: 8px; border: none;}
+    button, select {padding: 12px 20px; background: #e50914; color: white; border: none; border-radius: 8px; cursor: pointer;}
+    select {background: #222;}
 
-    .movies {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 20px;
-      margin-top: 30px;
-    }
+    .movies {display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin-top: 30px;}
     .card {
       background: #222;
       width: 180px;
@@ -48,61 +22,30 @@
       transition: 0.3s;
       position: relative;
     }
-    .card:hover { transform: scale(1.08); box-shadow: 0 0 20px rgba(229,9,20,0.6); }
-    .card img { width: 100%; height: 260px; object-fit: cover; }
-    .info { padding: 12px; }
+    .card:hover {transform: scale(1.08); box-shadow: 0 0 20px rgba(229,9,20,0.6);}
+    .card img {width: 100%; height: 260px; object-fit: cover;}
+    .info {padding: 12px;}
     .favorite {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: rgba(0,0,0,0.7);
-      border: none;
-      font-size: 22px;
-      cursor: pointer;
-      padding: 5px 8px;
-      border-radius: 50%;
+      position: absolute; top: 10px; right: 10px;
+      background: rgba(0,0,0,0.7); border: none; font-size: 22px;
+      cursor: pointer; padding: 5px 8px; border-radius: 50%;
     }
 
-    /* Модальное окно */
     .modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.9);
-      z-index: 1000;
-      align-items: center;
-      justify-content: center;
+      display: none; position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%; background: rgba(0,0,0,0.95);
+      z-index: 1000; align-items: center; justify-content: center;
     }
     .modal-content {
-      background: #1f1f1f;
-      padding: 25px;
-      border-radius: 16px;
-      max-width: 720px;
-      width: 90%;
-      text-align: left;
-      position: relative;
+      background: #1f1f1f; padding: 25px; border-radius: 16px;
+      max-width: 720px; width: 90%; text-align: left; position: relative;
     }
-    .close {
-      position: absolute;
-      top: 15px;
-      right: 20px;
-      font-size: 36px;
-      cursor: pointer;
-      color: #aaa;
-    }
-    .close:hover { color: white; }
+    .close {position: absolute; top: 15px; right: 25px; font-size: 36px; cursor: pointer; color: #aaa;}
+    .close:hover {color: white;}
     .trailer-btn {
-      background: #ff0000;
-      color: white;
-      padding: 14px 24px;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-      margin: 15px 0;
+      background: #ff0000; color: white; padding: 14px 24px;
+      border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin: 15px 0;
     }
-    .trailer-btn:hover { background: #cc0000; }
   </style>
 </head>
 <body>
@@ -120,72 +63,58 @@
   </div>
 
   <div class="movies" id="movies"></div>
-  <div class="pagination" id="pagination"></div>
 
-  <!-- Нормальное модальное окно -->
+  <!-- Модальное окно -->
   <div id="modal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeModal()">×</span>
       <h2 id="modalTitle"></h2>
-      <div id="modalMeta" style="color: #bbb; margin: 10px 0;"></div>
+      <div id="modalMeta" style="color:#bbb; margin:10px 0;"></div>
       <button class="trailer-btn" onclick="watchTrailer()">▶ Смотреть трейлер на YouTube</button>
-      <p id="modalPlot" style="line-height: 1.6;"></p>
+      <p id="modalPlot" style="line-height:1.6;"></p>
     </div>
   </div>
 
 <script>
 const API_KEY = "be3d5ef4";
-let currentPage = 1;
-let currentQuery = "";
-let currentType = "";
 
 async function searchMovies(page = 1) {
-  currentQuery = document.getElementById("searchInput").value.trim();
-  currentType = document.getElementById("typeFilter").value;
-  currentPage = page;
-
-  if (!currentQuery) return;
+  const query = document.getElementById("searchInput").value.trim();
+  if (!query) return;
 
   const container = document.getElementById("movies");
   container.innerHTML = "<p>Загрузка...</p>";
 
-  let url = `https://www.omdbapi.com/?apikey=${API_KEY}&s=${encodeURIComponent(currentQuery)}&page=${page}`;
-  if (currentType) url += `&type=${currentType}`;
+  const type = document.getElementById("typeFilter").value;
+  let url = `https://www.omdbapi.com/?apikey=${API_KEY}&s=${encodeURIComponent(query)}&page=${page}`;
+  if (type) url += `&type=${type}`;
 
   try {
     const res = await fetch(url);
     const data = await res.json();
 
     container.innerHTML = "";
-    if (data.Response === "True" && data.Search) {
-      data.Search.forEach(movie => renderCard(movie));
-      renderPagination(data.totalResults || 10);
+    if (data.Response === "True") {
+      data.Search.forEach(movie => {
+        const div = document.createElement("div");
+        div.className = "card";
+        const poster = movie.Poster !== "N/A" ? movie.Poster : "https://via.placeholder.com/300x400/222/aaa?text=No+Poster";
+
+        div.innerHTML = `
+          <img src="${poster}" onclick="showMovieDetails('${movie.imdbID}')">
+          <div class="info" onclick="showMovieDetails('${movie.imdbID}')">
+            <strong>${movie.Title}</strong><br>
+            <small>${movie.Year} • ${movie.Type}</small>
+          </div>
+        `;
+        container.appendChild(div);
+      });
     } else {
-      container.innerHTML = "<p>Ничего не найдено 😔</p>";
+      container.innerHTML = "<p>Ничего не найдено</p>";
     }
-  } catch (e) {
+  } catch(e) {
     container.innerHTML = "<p>Ошибка загрузки</p>";
   }
-}
-
-function renderCard(movie) {
-  const container = document.getElementById("movies");
-  const div = document.createElement("div");
-  div.className = "card";
-
-  const poster = movie.Poster !== "N/A" ? movie.Poster : "https://via.placeholder.com/300x400/222/aaa?text=No+Poster";
-
-  div.innerHTML = `
-    <button class="favorite" onclick="event.stopImmediatePropagation(); toggleFavorite('${movie.imdbID}', '${movie.Title.replace(/'/g, "\\'")}', '${movie.Year}', '${movie.Poster}')">
-      ♡
-    </button>
-    <img src="${poster}" onclick="showMovieDetails('${movie.imdbID}')">
-    <div class="info" onclick="showMovieDetails('${movie.imdbID}')">
-      <strong>${movie.Title}</strong><br>
-      <small>${movie.Year} • ${movie.Type}</small>
-    </div>
-  `;
-  container.appendChild(div);
 }
 
 async function showMovieDetails(imdbID) {
@@ -194,23 +123,19 @@ async function showMovieDetails(imdbID) {
     const movie = await res.json();
 
     document.getElementById("modalTitle").textContent = movie.Title;
-    document.getElementById("modalMeta").innerHTML = `
-      ${movie.Year} • ${movie.Runtime} • ⭐ ${movie.imdbRating}/10<br>
-      <strong>${movie.Genre}</strong>
-    `;
-    document.getElementById("modalPlot").textContent = movie.Plot || "Описание отсутствует.";
+    document.getElementById("modalMeta").innerHTML = `${movie.Year} • ${movie.Runtime} • ⭐ ${movie.imdbRating}`;
+    document.getElementById("modalPlot").textContent = movie.Plot || "Нет описания";
 
-    window.currentMovieTitle = movie.Title + " " + movie.Year;
+    window.currentTitle = movie.Title + " " + movie.Year;
     document.getElementById("modal").style.display = "flex";
-  } catch (e) {
-    alert("Не удалось загрузить информацию");
+  } catch(e) {
+    alert("Ошибка загрузки деталей");
   }
 }
 
 function watchTrailer() {
-  if (window.currentMovieTitle) {
-    const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(window.currentMovieTitle + " official trailer")}`;
-    window.open(url, '_blank');
+  if (window.currentTitle) {
+    window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(window.currentTitle + " official trailer")}`, '_blank');
   }
 }
 
@@ -218,13 +143,9 @@ function closeModal() {
   document.getElementById("modal").style.display = "none";
 }
 
-// Пагинация, избранное и Enter — оставил как было раньше
-// (можно добавить позже, если нужно)
-
 document.getElementById("searchInput").addEventListener("keypress", e => {
   if (e.key === "Enter") searchMovies(1);
 });
 </script>
-
 </body>
 </html>
