@@ -20,25 +20,26 @@
       overflow: hidden;
       cursor: pointer;
       transition: 0.3s;
-      position: relative;
     }
     .card:hover {transform: scale(1.08); box-shadow: 0 0 20px rgba(229,9,20,0.6);}
     .card img {
       width: 100%;
       height: 260px;
       object-fit: cover;
-      background: #333;
+      background: #1a1a1a;
     }
-    .info {padding: 12px;}
     .no-poster {
       height: 260px;
-      background: #333;
+      background: linear-gradient(#333, #222);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #777;
-      font-size: 14px;
+      color: #666;
+      font-size: 13px;
+      text-align: center;
+      padding: 10px;
     }
+    .info {padding: 12px; text-align: left;}
   </style>
 </head>
 <body>
@@ -52,19 +53,18 @@
       <option value="movie">Фильмы</option>
       <option value="series">Сериалы</option>
     </select>
-    <button onclick="searchMovies(1)">Искать</button>
+    <button onclick="searchMovies()">Искать</button>
   </div>
 
   <div class="movies" id="movies"></div>
 
-  <!-- Модальное окно -->
-  <div id="modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center;">
-    <div class="modal-content" style="background: #1f1f1f; padding: 25px; border-radius: 16px; max-width: 720px; width: 90%; text-align: left; position: relative;">
-      <span onclick="closeModal()" style="position: absolute; top: 15px; right: 25px; font-size: 36px; cursor: pointer; color: #aaa;">×</span>
+  <div id="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:#1f1f1f; padding:25px; border-radius:16px; max-width:700px; width:90%; text-align:left; position:relative;">
+      <span onclick="closeModal()" style="position:absolute; top:15px; right:25px; font-size:36px; cursor:pointer; color:#aaa;">×</span>
       <h2 id="modalTitle"></h2>
       <div id="modalMeta" style="color:#bbb; margin:10px 0;"></div>
-      <button onclick="watchTrailer()" style="background: #ff0000; color: white; padding: 14px 24px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin: 15px 0;">▶ Смотреть трейлер на YouTube</button>
-      <p id="modalPlot" style="line-height:1.6;"></p>
+      <button onclick="watchTrailer()" style="background:#ff0000; color:white; padding:14px 24px; border:none; border-radius:8px; cursor:pointer;">▶ Смотреть трейлер</button>
+      <p id="modalPlot" style="line-height:1.6; margin-top:15px;"></p>
     </div>
   </div>
 
@@ -88,66 +88,53 @@ async function searchMovies() {
 
     container.innerHTML = "";
     if (data.Response === "True" && data.Search) {
-      data.Search.forEach(movie => renderCard(movie));
+      data.Search.forEach(m => renderCard(m));
     } else {
-      container.innerHTML = "<p>Ничего не найдено 😔</p>";
+      container.innerHTML = "<p>Ничего не найдено</p>";
     }
   } catch(e) {
-    container.innerHTML = "<p>Ошибка загрузки</p>";
+    container.innerHTML = "<p>Ошибка</p>";
   }
 }
 
 function renderCard(movie) {
-  const container = document.getElementById("movies");
   const div = document.createElement("div");
   div.className = "card";
 
-  let posterHTML = '';
-  if (movie.Poster && movie.Poster !== "N/A") {
-    posterHTML = `<img src="${movie.Poster}" alt="${movie.Title}" onerror="this.outerHTML='<div class=\'no-poster\'>Нет обложки</div>'">`;
-  } else {
-    posterHTML = `<div class="no-poster">Нет обложки</div>`;
-  }
+  const hasPoster = movie.Poster && movie.Poster !== "N/A";
 
   div.innerHTML = `
-    ${posterHTML}
+    ${hasPoster 
+      ? `<img src="${movie.Poster}" onerror="this.parentElement.querySelector('img').style.display='none'; this.parentElement.innerHTML += '<div class=no-poster>Нет обложки</div>'">`
+      : `<div class="no-poster">Нет обложки</div>`}
     <div class="info" onclick="showMovieDetails('${movie.imdbID}')">
       <strong>${movie.Title}</strong><br>
       <small>${movie.Year} • ${movie.Type}</small>
     </div>
   `;
-  container.appendChild(div);
+  document.getElementById("movies").appendChild(div);
 }
 
-async function showMovieDetails(imdbID) {
-  try {
-    const res = await fetch(`https://www.omdbapi.com/?apikey=${API_KEY}&i=${imdbID}&plot=full`);
-    const movie = await res.json();
-
-    document.getElementById("modalTitle").textContent = movie.Title;
-    document.getElementById("modalMeta").innerHTML = `${movie.Year} • ${movie.Runtime || 'N/A'} • ⭐ ${movie.imdbRating || 'N/A'}`;
-    document.getElementById("modalPlot").textContent = movie.Plot || "Описание отсутствует.";
-
-    window.currentTitle = movie.Title + " " + movie.Year;
-    document.getElementById("modal").style.display = "flex";
-  } catch(e) {
-    alert("Ошибка загрузки деталей");
-  }
+async function showMovieDetails(id) {
+  const res = await fetch(`https://www.omdbapi.com/?apikey=${API_KEY}&i=${id}&plot=full`);
+  const m = await res.json();
+  
+  document.getElementById("modalTitle").textContent = m.Title;
+  document.getElementById("modalMeta").innerHTML = `${m.Year} • ${m.Runtime || '—'} • ⭐ ${m.imdbRating || '—'}`;
+  document.getElementById("modalPlot").textContent = m.Plot || "Нет описания";
+  window.currentTitle = m.Title + " " + m.Year;
+  document.getElementById("modal").style.display = "flex";
 }
 
 function watchTrailer() {
-  if (window.currentTitle) {
-    window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(window.currentTitle + " official trailer")}`, '_blank');
-  }
+  window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(window.currentTitle + " trailer")}`, '_blank');
 }
 
 function closeModal() {
   document.getElementById("modal").style.display = "none";
 }
 
-document.getElementById("searchInput").addEventListener("keypress", e => {
-  if (e.key === "Enter") searchMovies();
-});
+document.getElementById("searchInput").addEventListener("keypress", e => { if(e.key==="Enter") searchMovies(); });
 </script>
 </body>
 </html>
