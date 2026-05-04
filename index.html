@@ -175,26 +175,26 @@ async function showMovie(id) {
             ? m.Poster 
             : "https://via.placeholder.com/300x420?text=No+Image";
 
+        // Улучшенный поиск трейлера
+        const trailerQuery = encodeURIComponent(`${m.Title} official trailer ${m.Year}`);
+
         document.getElementById("modalContent").innerHTML = `
             <span class="close-btn" onclick="closeModal()">×</span>
             
-            <h2>${m.Title}</h2>
+            <h2>${m.Title} (${m.Year})</h2>
             <img src="${poster}" alt="${m.Title}">
             
-            <p><strong>Год:</strong> ${m.Year}</p>
             <p><strong>Жанр:</strong> ${m.Genre}</p>
             <p><strong>Актёры:</strong> ${m.Actors}</p>
             <p><strong>Рейтинг:</strong> ⭐ ${m.imdbRating}</p>
             
-            <p style="line-height:1.5;">${m.Plot}</p>
+            <p style="line-height:1.6;">${m.Plot}</p>
             
-            <iframe 
-                width="100%" 
-                height="260" 
-                src="https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(m.Title + " official trailer")}" 
-                frameborder="0" 
-                allowfullscreen>
-            </iframe>
+            <a href="https://www.youtube.com/results?search_query=${trailerQuery}" 
+               target="_blank" 
+               style="display: inline-block; margin: 15px 0; padding: 12px 25px; background: #FF0000; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
+               ▶ Смотреть трейлер на YouTube
+            </a>
             
             <br><br>
             <button onclick="closeModal()" style="padding:12px 30px;">Закрыть</button>
@@ -202,7 +202,7 @@ async function showMovie(id) {
 
         document.getElementById("modal").style.display = "flex";
     } catch (e) {
-        alert("Ошибка загрузки информации о фильме");
+        alert("Ошибка загрузки информации");
     }
 }
 
