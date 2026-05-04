@@ -79,7 +79,8 @@ img {
 <div id="movies" class="movies"></div>
 
 <div id="modal" class="modal">
-  <div class="modal-content">
+  <div class="modal-content" id="modalContent"></div>
+</div>
     <h3 id="title"></h3>
     <p id="info"></p>
     <button onclick="watchTrailer()">▶ Трейлер</button>
@@ -95,10 +96,12 @@ async function searchMovies() {
   let query = document.getElementById("searchInput").value;
   if (!query) return;
 
+  let container = document.getElementById("movies");
+  container.innerHTML = "<p>Загрузка...</p>";
+
   let res = await fetch(`https://www.omdbapi.com/?apikey=${API_KEY}&s=${query}`);
   let data = await res.json();
 
-  let container = document.getElementById("movies");
   container.innerHTML = "";
 
   if (data.Search) {
@@ -125,26 +128,35 @@ async function searchMovies() {
 }
 
 async function showMovie(id) {
-  let res = await fetch(`https://www.omdbapi.com/?apikey=${API_KEY}&i=${id}`);
-  let data = await res.json();
+  let res = await fetch(`https://www.omdbapi.com/?apikey=${API_KEY}&i=${id}&plot=full`);
+  let m = await res.json();
 
-  document.getElementById("title").innerText = data.Title;
-  document.getElementById("info").innerText =
-    data.Year + " | ⭐ " + data.imdbRating;
+  let poster = (m.Poster && m.Poster !== "N/A")
+    ? m.Poster
+    : "https://via.placeholder.com/200x300?text=No+Image";
 
-  window.currentMovie = data.Title;
+  document.getElementById("modalContent").innerHTML = `
+    <h2>${m.Title}</h2>
+    <img src="${poster}" style="width:200px;border-radius:8px;">
+    <p><b>Год:</b> ${m.Year}</p>
+    <p><b>Жанр:</b> ${m.Genre}</p>
+    <p><b>Актёры:</b> ${m.Actors}</p>
+    <p><b>Рейтинг:</b> ⭐ ${m.imdbRating}</p>
+    <p>${m.Plot}</p>
+
+    <iframe 
+      width="100%" 
+      height="200"
+      src="https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(m.Title + " trailer")}"
+      frameborder="0"
+      allowfullscreen>
+    </iframe>
+
+    <br><br>
+    <button onclick="closeModal()">Закрыть</button>
+  `;
 
   document.getElementById("modal").style.display = "flex";
-}
-
-function watchTrailer() {
-  if (window.currentMovie) {
-    window.open(
-      "https://www.youtube.com/results?search_query=" +
-      encodeURIComponent(window.currentMovie + " trailer"),
-      "_blank"
-    );
-  }
 }
 
 function closeModal() {
