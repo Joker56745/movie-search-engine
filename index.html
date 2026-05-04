@@ -4,167 +4,219 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Movie Search</title>
-
 <style>
-body {
-  font-family: Arial;
-  background: #111;
-  color: white;
-  text-align: center;
-  margin: 0;
-}
+    body {
+        font-family: Arial, sans-serif;
+        background: #111;
+        color: white;
+        margin: 0;
+        padding: 20px;
+        text-align: center;
+    }
 
-input {
-  padding: 10px;
-  margin: 20px;
-  width: 250px;
-}
+    input {
+        padding: 12px;
+        margin: 20px 10px;
+        width: 280px;
+        font-size: 16px;
+        border-radius: 8px;
+        border: none;
+    }
 
-button {
-  padding: 10px;
-  cursor: pointer;
-}
+    button {
+        padding: 12px 20px;
+        cursor: pointer;
+        font-size: 16px;
+    }
 
-.movies {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-}
+    .movies {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 15px;
+    }
 
-.card {
-  background: #222;
-  margin: 10px;
-  padding: 10px;
-  border-radius: 10px;
-  width: 160px;
-  cursor: pointer;
-  transition: 0.3s;
-}
+    .card {
+        background: #222;
+        margin: 10px;
+        padding: 10px;
+        border-radius: 12px;
+        width: 160px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
 
-.card:hover {
-  transform: scale(1.05);
-}
+    .card:hover {
+        transform: scale(1.08);
+        background: #333;
+    }
 
-img {
-  width: 100%;
-  border-radius: 5px;
-}
+    img {
+        width: 100%;
+        border-radius: 8px;
+    }
 
-.modal {
-  display: none;
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0,0,0,0.9);
-  justify-content: center;
-  align-items: center;
-}
+    /* ==================== MODAL ==================== */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.95);
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
 
-.modal-content {
-  background: #222;
-  padding: 20px;
-  border-radius: 10px;
-  width: 300px;
-}
+    .modal-content {
+        background: #222;
+        padding: 25px 20px;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 600px;
+        max-height: 90vh;           /* Важно! */
+        overflow-y: auto;           /* Скролл */
+        position: relative;
+        box-shadow: 0 0 30px rgba(0,0,0,0.8);
+    }
+
+    .close-btn {
+        position: absolute;
+        top: 15px;
+        right: 20px;
+        font-size: 28px;
+        cursor: pointer;
+        color: #ccc;
+        transition: 0.2s;
+    }
+
+    .close-btn:hover {
+        color: white;
+        transform: scale(1.1);
+    }
+
+    .modal-content img {
+        width: 100%;
+        max-width: 280px;
+        border-radius: 10px;
+        margin: 15px 0;
+    }
+
+    .modal-content iframe {
+        width: 100%;
+        height: 260px;
+        border-radius: 8px;
+    }
 </style>
 </head>
-
 <body>
 
 <h2>🎬 Поиск фильмов</h2>
-
-<input id="searchInput" placeholder="Название фильма">
+<input id="searchInput" placeholder="Название фильма" type="text">
 <button onclick="searchMovies()">Поиск</button>
 
 <div id="movies" class="movies"></div>
 
+<!-- MODAL -->
 <div id="modal" class="modal">
-  <div class="modal-content" id="modalContent"></div>
-</div>
-    <h3 id="title"></h3>
-    <p id="info"></p>
-    <button onclick="watchTrailer()">▶ Трейлер</button>
-    <br><br>
-    <button onclick="closeModal()">Закрыть</button>
-  </div>
+    <div class="modal-content" id="modalContent">
+        <span class="close-btn" onclick="closeModal()">×</span>
+        <!-- Контент будет вставляться через JavaScript -->
+    </div>
 </div>
 
 <script>
 const API_KEY = "c48d419a";
 
 async function searchMovies() {
-  let query = document.getElementById("searchInput").value;
-  if (!query) return;
+    const query = document.getElementById("searchInput").value.trim();
+    if (!query) return;
 
-  let container = document.getElementById("movies");
-  container.innerHTML = "<p>Загрузка...</p>";
+    const container = document.getElementById("movies");
+    container.innerHTML = "<p>Загрузка...</p>";
 
-  let res = await fetch(`https://www.omdbapi.com/?apikey=${API_KEY}&s=${query}`);
-  let data = await res.json();
+    try {
+        const res = await fetch(`https://www.omdbapi.com/?apikey=${API_KEY}&s=${query}`);
+        const data = await res.json();
 
-  container.innerHTML = "";
+        container.innerHTML = "";
 
-  if (data.Search) {
-    data.Search.forEach(movie => {
-      let div = document.createElement("div");
-      div.className = "card";
+        if (data.Search && data.Search.length > 0) {
+            data.Search.forEach(movie => {
+                const div = document.createElement("div");
+                div.className = "card";
 
-      let poster = (movie.Poster && movie.Poster !== "N/A")
-        ? movie.Poster
-        : "https://via.placeholder.com/150x220?text=No+Image";
+                const poster = movie.Poster && movie.Poster !== "N/A" 
+                    ? movie.Poster 
+                    : "https://via.placeholder.com/160x240?text=No+Image";
 
-      div.innerHTML = `
-        <img src="${poster}">
-        <p>${movie.Title}</p>
-      `;
-
-      div.onclick = () => showMovie(movie.imdbID);
-
-      container.appendChild(div);
-    });
-  } else {
-    container.innerText = "Ничего не найдено";
-  }
+                div.innerHTML = `
+                    <img src="${poster}">
+                    <p><strong>${movie.Title}</strong></p>
+                    <small>${movie.Year}</small>
+                `;
+                div.onclick = () => showMovie(movie.imdbID);
+                container.appendChild(div);
+            });
+        } else {
+            container.innerHTML = "<p>Ничего не найдено 😕</p>";
+        }
+    } catch (e) {
+        container.innerHTML = "<p>Ошибка соединения</p>";
+    }
 }
 
 async function showMovie(id) {
-  let res = await fetch(`https://www.omdbapi.com/?apikey=${API_KEY}&i=${id}&plot=full`);
-  let m = await res.json();
+    try {
+        const res = await fetch(`https://www.omdbapi.com/?apikey=${API_KEY}&i=${id}&plot=full`);
+        const m = await res.json();
 
-  let poster = (m.Poster && m.Poster !== "N/A")
-    ? m.Poster
-    : "https://via.placeholder.com/200x300?text=No+Image";
+        const poster = m.Poster && m.Poster !== "N/A" 
+            ? m.Poster 
+            : "https://via.placeholder.com/300x420?text=No+Image";
 
-  document.getElementById("modalContent").innerHTML = `
-    <h2>${m.Title}</h2>
-    <img src="${poster}" style="width:200px;border-radius:8px;">
-    <p><b>Год:</b> ${m.Year}</p>
-    <p><b>Жанр:</b> ${m.Genre}</p>
-    <p><b>Актёры:</b> ${m.Actors}</p>
-    <p><b>Рейтинг:</b> ⭐ ${m.imdbRating}</p>
-    <p>${m.Plot}</p>
+        document.getElementById("modalContent").innerHTML = `
+            <span class="close-btn" onclick="closeModal()">×</span>
+            
+            <h2>${m.Title}</h2>
+            <img src="${poster}" alt="${m.Title}">
+            
+            <p><strong>Год:</strong> ${m.Year}</p>
+            <p><strong>Жанр:</strong> ${m.Genre}</p>
+            <p><strong>Актёры:</strong> ${m.Actors}</p>
+            <p><strong>Рейтинг:</strong> ⭐ ${m.imdbRating}</p>
+            
+            <p style="line-height:1.5;">${m.Plot}</p>
+            
+            <iframe 
+                width="100%" 
+                height="260" 
+                src="https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(m.Title + " official trailer")}" 
+                frameborder="0" 
+                allowfullscreen>
+            </iframe>
+            
+            <br><br>
+            <button onclick="closeModal()" style="padding:12px 30px;">Закрыть</button>
+        `;
 
-    <iframe 
-      width="100%" 
-      height="200"
-      src="https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(m.Title + " trailer")}"
-      frameborder="0"
-      allowfullscreen>
-    </iframe>
-
-    <br><br>
-    <button onclick="closeModal()">Закрыть</button>
-  `;
-
-  document.getElementById("modal").style.display = "flex";
+        document.getElementById("modal").style.display = "flex";
+    } catch (e) {
+        alert("Ошибка загрузки информации о фильме");
+    }
 }
 
 function closeModal() {
-  document.getElementById("modal").style.display = "none";
+    document.getElementById("modal").style.display = "none";
 }
 
-document.getElementById("searchInput")
-  .addEventListener("keypress", e => {
+// Закрытие по клику на фон
+document.getElementById("modal").addEventListener("click", function(e) {
+    if (e.target === this) closeModal();
+});
+
+// Поиск по Enter
+document.getElementById("searchInput").addEventListener("keypress", e => {
     if (e.key === "Enter") searchMovies();
 });
 </script>
